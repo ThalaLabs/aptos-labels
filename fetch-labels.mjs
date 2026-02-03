@@ -29,8 +29,10 @@ function normalizeAddress(hexString) {
 
 async function fetchKnownAddresses() {
   try {
-    console.error('Fetching from Aptos Explorer...');
     const response = await fetch(EXPLORER_URL);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+    }
     const content = await response.text();
 
     // Helper to extract address-label pairs from an object string

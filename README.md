@@ -4,12 +4,10 @@ Known addresses on Aptos mainnet with human-readable labels.
 
 ## Source
 
-Labels are fetched from the [Aptos Explorer](https://github.com/aptos-labs/explorer/blob/main/src/constants.tsx) `knownAddresses` object.
+Labels are fetched from the [Aptos Explorer](https://github.com/aptos-labs/explorer/blob/main/app/data/mainnet/knownAddresses.ts) `mainnetKnownAddresses` and `mainnetScamAddresses` objects.
 
 ## Update
 
-Run the fetch script to get the latest labels:
-
 ```bash
-node fetch-labels.mjs > mainnet.json
+make sync
 ```
