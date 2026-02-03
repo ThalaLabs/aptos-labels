@@ -5,7 +5,7 @@
  * Run with: node fetch-labels.mjs
  */
 
-const EXPLORER_URL = 'https://raw.githubusercontent.com/aptos-labs/explorer/main/src/constants.tsx';
+const EXPLORER_URL = 'https://raw.githubusercontent.com/aptos-labs/explorer/main/app/data/mainnet/knownAddresses.ts';
 
 // Simple address normalization (mimics AccountAddress.from().toString())
 function normalizeAddress(hexString) {
@@ -33,30 +33,38 @@ async function fetchKnownAddresses() {
     const response = await fetch(EXPLORER_URL);
     const content = await response.text();
 
-    // Extract the knownAddresses object
-    const match = content.match(/export const knownAddresses[^{]*({[\s\S]*?})\s*;/);
-
-    if (!match) {
-      throw new Error('Could not find knownAddresses in the source file');
+    // Helper to extract address-label pairs from an object string
+    function extractPairs(objectString) {
+      const pairs = {};
+      const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/gs;
+      let regexMatch;
+      while ((regexMatch = regex.exec(objectString)) !== null) {
+        const address = regexMatch[1];
+        const label = regexMatch[2];
+        const normalized = normalizeAddress(address);
+        pairs[normalized] = label;
+      }
+      return pairs;
     }
 
-    // Parse the object - need to handle TypeScript object literal syntax
-    const objectString = match[1];
-
-    // Extract key-value pairs - handles multi-line format
-    // Matches: "0xADDRESS": followed by optional whitespace/newline and "Label"
-    const pairs = {};
-    const regex = /["']([^"']+)["']\s*:\s*["']([^"']+)["']/gs;
-    let regexMatch;
-
-    while ((regexMatch = regex.exec(objectString)) !== null) {
-      const address = regexMatch[1];
-      const label = regexMatch[2];
-      const normalized = normalizeAddress(address);
-      pairs[normalized] = label;
+    // Extract mainnetKnownAddresses
+    const knownMatch = content.match(/export const mainnetKnownAddresses[^{]*({[\s\S]*?});/);
+    if (!knownMatch) {
+      throw new Error('Could not find mainnetKnownAddresses in the source file');
     }
+    const knownPairs = extractPairs(knownMatch[1]);
 
-    console.log(JSON.stringify(pairs, null, 2));
+    // Extract mainnetScamAddresses
+    const scamMatch = content.match(/export const mainnetScamAddresses[^{]*({[\s\S]*?});/);
+    if (!scamMatch) {
+      throw new Error('Could not find mainnetScamAddresses in the source file');
+    }
+    const scamPairs = extractPairs(scamMatch[1]);
+
+    // Merge both (scam addresses will override if there are duplicates)
+    const allPairs = { ...knownPairs, ...scamPairs };
+
+    console.log(JSON.stringify(allPairs, null, 2));
 
   } catch (error) {
     console.error('Error:', error.message);
